@@ -1,4 +1,5 @@
 import random
+import itertools
 
 # Define the Bayesian Network class
 class BayesianNetwork:
@@ -6,37 +7,60 @@ class BayesianNetwork:
         self.nodes = {}
     
     # Add a node to the network
-    def add_node(self, name, states, parents=None, cpt=None):
-        if parents is None:
-            parents = []
-        if cpt is None:
-            cpt = {}
+    def add_node(self, name, states, cpt, parents=[]):
+
+        # Check if the node already exists in the network
+        if name in self.nodes:
+            print(f"Node '{name}' already exists in the network.")
+            return
+        
+        # Check if the node has at least one state
+        if len(states) == 0:
+            print(f"Node '{name}' must have at least one state.")
+            return
+        
+        # Check if all parent nodes exist in the network
+        for parent in parents:
+            if parent not in self.nodes:
+                print(f"Parent node '{parent}' does not exist in the network.")
+                return
+
+        # Check if the CPT is valid
+        for parent_combination in itertools.product(*[self.nodes[parent]['states'] for parent in parents]):
+            if parent_combination not in cpt or len(cpt[parent_combination]) != len(states) or sum(cpt[parent_combination]) != 1:
+                print(f"Invalid CPT for node '{name}'.")
+                return
+            print(f"Valid CPT for node '{name}'. Combination: {parent_combination} -> {cpt[parent_combination]}")
+
         self.nodes[name] = {'states': states, 'parents': parents, 'cpt': cpt}
     
-    # Calculate the probability of a node given its parents' states
-    def probability(self, node, parent_states):
-        cpt = self.nodes[node]['cpt']
-        key = tuple(parent_states[parent] for parent in self.nodes[node]['parents'])
-        return cpt[key]
+    # Calculate the probability of a state of a node given its parents' states
+    def probability(self, node, parent_states, state):
+        states = self.nodes[node]['states']
+        return self.nodes[node]['cpt'][parent_states][states.index(state)]
     
     # Sample a state for a node given its parents' states
     def sample(self, node, parent_states):
+        print('sampling node:', node, 'with parent states:', parent_states, '...')
         p = random.random()
         cumulative_prob = 0
         states = self.nodes[node]['states']
         for state in states:
-            cumulative_prob += self.probability(node, parent_states + [state])
+            probability = self.probability(node, parent_states, state)
+            cumulative_prob += probability
             if p <= cumulative_prob:
-                return state
+                return state, probability
     
     # Sample states for all nodes
     def sample_states(self):
         sampled_states = {}
+        joint_probability = 1
         for node in self.nodes:
             parents = self.nodes[node]['parents']
-            parent_states = [sampled_states[parent] for parent in parents]
-            sampled_states[node] = self.sample(node, parent_states)
-        return sampled_states
+            parent_states = tuple(sampled_states[parent] for parent in parents)
+            sampled_states[node], probaility = self.sample(node, parent_states)
+            joint_probability *= probaility
+        return sampled_states, joint_probability
 
 # Define conditional probability tables (CPTs)
 study_cpt = {
@@ -94,25 +118,19 @@ motivation_cpt = {
     ('High', 'High'): [0.5, 0.3, 0.2],
 }
 distraction_cpt = {
-    ('Low',): [0.7, 0.2, 0.1],    # P(External Distractions)
-    ('Medium',): [0.5, 0.3, 0.2],
-    ('High',): [0.3, 0.5, 0.2],
+    (): [0.7, 0.2, 0.1]    # P(External Distractions)
 }
 caffeine_cpt = {
-    ('Low',): [0.3, 0.5, 0.2],    # P(Caffeine Intake)
-    ('Medium',): [0.5, 0.4, 0.1],
-    ('High',): [0.7, 0.2, 0.1],
+    (): [0.3, 0.5, 0.2]    # P(Caffeine Intake)
 }
 nutrition_cpt = {
-    ('Low',): [0.2, 0.6, 0.2],    # P(Nutrition)
-    ('Average',): [0.5, 0.4, 0.1],
-    ('Good',): [0.8, 0.15, 0.05],
+    (): [0.2, 0.6, 0.2]    # P(Nutrition)
 }
 social_cpt = {
-    ('Low',): [0.3, 0.5, 0.2],    # P(Social Life)
-    ('Medium',): [0.5, 0.4, 0.1],
-    ('High',): [0.7, 0.2, 0.1],
+    (): [0.3, 0.5, 0.2]    # P(Social Life)
 }
+
+print("Bayesian Network for Student Performance Prediction\n")
 
 # Initialize Bayesian Network
 bn = BayesianNetwork()
@@ -121,17 +139,20 @@ bn = BayesianNetwork()
 bn.add_node('Study Time', ['Low', 'Medium', 'High'], cpt=study_cpt)
 bn.add_node('Sleep Quality', ['Low', 'Medium', 'High'], cpt=sleep_cpt)
 bn.add_node('Stress Level', ['Low', 'Medium', 'High'], cpt=stress_cpt)
-bn.add_node('Exam Difficulty', ['Easy', 'Medium', 'Hard'], parents=['Study Time', 'Sleep Quality', 'Stress Level'], cpt=exam_cpt)
-bn.add_node('Health', ['Good', 'Okay', 'Poor'], parents=['Stress Level'], cpt=health_cpt)
-bn.add_node('Motivation', ['Low', 'Medium', 'High'], parents=['Stress Level', 'Sleep Quality'], cpt=motivation_cpt)
+bn.add_node('Exam Difficulty', ['Easy', 'Medium', 'Hard'], cpt=exam_cpt, parents=['Study Time', 'Sleep Quality', 'Stress Level'])
+bn.add_node('Health', ['Good', 'Okay', 'Poor'], cpt=health_cpt, parents=['Stress Level'])
+bn.add_node('Motivation', ['Low', 'Medium', 'High'], cpt=motivation_cpt, parents=['Stress Level', 'Sleep Quality'])
 bn.add_node('External Distractions', ['Low', 'Medium', 'High'], cpt=distraction_cpt)
 bn.add_node('Caffeine Intake', ['Low', 'Medium', 'High'], cpt=caffeine_cpt)
 bn.add_node('Nutrition', ['Poor', 'Average', 'Good'], cpt=nutrition_cpt)
 bn.add_node('Social Life', ['Low', 'Medium', 'High'], cpt=social_cpt)
 
 # Sample states for all nodes
-sampled_states = bn.sample_states()
+sampled_states, joint_probability = bn.sample_states()
 
 # Print sampled states
 for node, state in sampled_states.items():
     print(f"{node}: {state}")
+
+# Print joint probability
+print(f"Joint Probability: {joint_probability}")
