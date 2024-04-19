@@ -1,0 +1,18 @@
+Davide Marchi 602476 - Assignment 4
+
+Google Colab link:
+https://colab.research.google.com/drive/10eZfQd_OBfz1DoIVtPfMYjX8-A1sQi4k?usp=sharing
+
+
+
+
+
+
+
+If needed for any reason,
+
+GitHub link:
+https://github.com/davide-marchi/ISPR/blob/main/Midterm2_Assignment4/BayesianNetwork.ipynb
+
+In case of any issues with the links, please don't hesitate to contact me at:
+d.marchi5@studenti.unipi.it
