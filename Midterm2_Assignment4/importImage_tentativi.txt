@@ -18,3 +18,8 @@ TENTATIVI FALLITI:
 https://drive.google.com/file/d/1nrpNm0ytcxQnwwjb8FGtwC8t5bUre6qp/view?usp=drive_link
 
 https://drive.google.com/file/d/1nrpNm0ytcxQnwwjb8FGtwC8t5bUre6qp/view?usp=sharing
+
+
+
+USEFULL LINK:
+https://stackoverflow.com/questions/50670920/how-to-insert-an-inline-image-in-google-colaboratory-from-google-drive
